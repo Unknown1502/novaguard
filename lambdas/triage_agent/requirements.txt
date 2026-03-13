@@ -1,0 +1,8 @@
+# Triage Agent — extends shared layer
+# Nova 2 Lite tool use + OpenSearch hybrid search
+
+# OpenSearch vector search (also in shared, but pinned here explicitly)
+opensearch-py>=2.6.0
+
+# NumPy for cosine similarity scoring locally (fallback when OpenSearch unavailable)
+numpy>=1.26.0

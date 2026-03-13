@@ -1,0 +1,32 @@
+{
+  "name": "novaguard-sonic-demo",
+  "version": "1.0.0",
+  "description": "NovaGuard Nova Sonic Voice Bridge — AWS SDK v3 bidirectional streaming demo",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "demo": "node index.js",
+    "tts": "node index.js --tts \"Units have been dispatched. ETA 4 minutes. Please stay on the line.\"",
+    "pipeline": "node index.js --pipeline",
+    "install-check": "node -e \"import('@aws-sdk/client-bedrock-runtime').then(m => { const c = new m.InvokeModelWithBidirectionalStreamCommand; console.log('✅ InvokeModelWithBidirectionalStream available in SDK v3'); }).catch(e => console.error('❌', e.message))\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.726.0",
+    "@aws-sdk/credential-providers": "^3.726.0"
+  },
+  "keywords": [
+    "amazon-nova",
+    "nova-sonic",
+    "novaguard",
+    "bedrock",
+    "speech-to-text",
+    "emergency-response",
+    "hackathon"
+  ],
+  "author": "NovaGuard Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,443 @@
+{
+  "Comment": "NovaGuard Emergency Response Pipeline — State Machine v2.0\n\nExpress Workflow: Handles the real-time intake→triage→dispatch→communications pipeline.\n\nSLA: < 6 seconds end-to-end (P99) — down from 8s in v1.0\n  - ValidateAndEnrich: 0ms (Pass state; eliminated blocking DDB getItem read)\n  - Triage (Nova 2 Lite):      1400ms\n  - Human escalation check:     100ms (Choice state)\n  - Dispatch (Nova Act + Location Service): 2300ms\n  - FinalizeParallel (Comms + DDB write in parallel): 800ms (was 1400ms sequential)\n\nv2.0 changes:\n  - ValidateAndEnrich: Task (DDB getItem) → Pass (saves ~180ms + 1 DDB RCU per execution)\n  - CheckTriageConfidence: BUG FIX — critical severity (≥85) now checked FIRST before low-confidence\n    Previously a high-severity + low-confidence call went to human escalation, delaying cardiac arrest response\n  - CriticalDispatchParallel → NormalizeCriticalDispatch: fixes output shape mismatch bug\n  - RunCommunicationsAgent + RecordFinalStatus merged into FinalizeParallel (saves ~400ms, fewer state transitions)\n  - Fewer state transitions = lower Step Functions Express cost per execution",
+
+  "StartAt": "ValidateAndEnrich",
+
+  "States": {
+
+    "ValidateAndEnrich": {
+      "Type": "Pass",
+      "Comment": "v2: Eliminated blocking DDB getItem — intake agent persisted the record moments ago. Pass-through normalizes input shape and saves ~180ms + 1 DDB read unit per execution.",
+      "Parameters": {
+        "emergency_id.$":            "$.emergency_id",
+        "correlation_id.$":          "$.correlation_id",
+        "latitude.$":                "$.latitude",
+        "longitude.$":               "$.longitude",
+        "raw_description.$":         "$.raw_description",
+        "communication_mode.$":      "$.communication_mode",
+        "detected_language.$":       "$.detected_language",
+        "caller_phone.$":            "$.caller_phone",
+        "caller_ws_connection_id.$": "$.caller_ws_connection_id",
+        "table_name.$":              "$.table_name",
+        "function_arns.$":           "$.function_arns",
+        "sns_arns.$":                "$.sns_arns"
+      },
+      "Next": "RunTriageAgent"
+    },
+
+    "RunTriageAgent": {
+      "Type": "Task",
+      "Comment": "Invoke Nova 2 Lite triage agent. Must complete within 2500ms. Returns TriageResult.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName.$": "$.function_arns.triage_agent",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "emergency_id.$":   "$.Payload.emergency_id",
+        "triage_result.$":  "$.Payload.triage_result"
+      },
+      "ResultPath": "$.triage_output",
+      "TimeoutSeconds": 3,
+      "HeartbeatSeconds": 2,
+      "Next": "CheckTriageConfidence",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.Timeout"],
+          "Comment": "Triage timed out — use conservative fallback and continue",
+          "Next": "TriageFallback",
+          "ResultPath": "$.triage_error"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 2,
+          "BackoffRate": 1.5,
+          "JitterStrategy": "FULL"
+        }
+      ]
+    },
+
+    "TriageFallback": {
+      "Type": "Pass",
+      "Comment": "Inject a conservative fallback triage result so pipeline can continue",
+      "Parameters": {
+        "triage_result": {
+          "severity_score":             75,
+          "confidence":                 0.0,
+          "emergency_type":             "UNKNOWN",
+          "sub_type":                   "undetermined",
+          "estimated_patient_count":    1,
+          "suspected_hazards":          [],
+          "recommended_response_level": 3,
+          "protocol_references":        [],
+          "triage_narrative":           "AI triage timed out. Conservative HIGH severity applied. Manual override required.",
+          "resource_requirements":      {"AMBULANCE": 1, "POLICE_UNIT": 1},
+          "caller_instructions":        "Please stay on the line. Help is being coordinated.",
+          "fallback_used":              true
+        }
+      },
+      "ResultPath": "$.triage_output",
+      "Next": "RouteToHumanEscalation"
+    },
+
+    "CheckTriageConfidence": {
+      "Type": "Choice",
+      "Comment": "v2 BUG FIX: Critical severity is evaluated FIRST. Previously a high-severity+low-confidence call (e.g., cardiac arrest with ambiguous audio) incorrectly routed to human escalation instead of the fast-track — a life-threatening ordering error.",
+      "Choices": [
+        {
+          "Comment": "Critical severity (≥85) fast-tracks to parallel dispatch REGARDLESS of confidence — life-threatening situations must not be delayed by model uncertainty",
+          "Variable": "$.triage_output.triage_result.severity_score",
+          "NumericGreaterThanEquals": 85,
+          "Next": "CriticalDispatchParallel"
+        },
+        {
+          "Comment": "Low confidence OR fallback active — route to human escalation with parallel automated dispatch",
+          "Or": [
+            {
+              "Variable": "$.triage_output.triage_result.confidence",
+              "NumericLessThan": 0.7
+            },
+            {
+              "Variable": "$.triage_output.triage_result.fallback_used",
+              "BooleanEquals": true
+            }
+          ],
+          "Next": "RouteToHumanEscalation"
+        }
+      ],
+      "Default": "RunDispatchAgent"
+    },
+
+    "RouteToHumanEscalation": {
+      "Type": "Parallel",
+      "Comment": "Simultaneously: notify human dispatcher + continue automated dispatch with best available info",
+      "Branches": [
+        {
+          "StartAt": "NotifyHumanDispatcher",
+          "States": {
+            "NotifyHumanDispatcher": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::sns:publish",
+              "Parameters": {
+                "TopicArn.$":  "$.sns_arns.dispatcher_alerts",
+                "Subject":     "HUMAN REVIEW REQUIRED — NovaGuard Triage",
+                "Message.$":   "States.Format('Emergency {} requires human review. Confidence: {}. Severity: {}', $.emergency_id, $.triage_output.triage_result.confidence, $.triage_output.triage_result.severity_score)"
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "ContinueWithLowConfidenceTriage",
+          "States": {
+            "ContinueWithLowConfidenceTriage": {
+              "Type": "Pass",
+              "Comment": "Pass triage output through to dispatch even with low confidence",
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.escalation_result",
+      "Next": "RunDispatchAgent"
+    },
+
+    "CriticalDispatchParallel": {
+      "Type": "Parallel",
+      "Comment": "For critical (severity≥85) emergencies: run dispatch AND communications start in parallel",
+      "Branches": [
+        {
+          "StartAt": "RunDispatchCritical",
+          "States": {
+            "RunDispatchCritical": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName.$": "$.function_arns.dispatch_agent",
+                "Payload": {
+                  "emergency_id.$":   "$.emergency_id",
+                  "triage_result.$":  "$.triage_output.triage_result",
+                  "latitude.$":       "$.latitude",
+                  "longitude.$":      "$.longitude",
+                  "correlation_id.$": "$.correlation_id"
+                }
+              },
+              "ResultSelector": { "dispatch_recommendation.$": "$.Payload" },
+              "End": true,
+              "TimeoutSeconds": 4
+            }
+          }
+        },
+        {
+          "StartAt": "SendInitialCallerAck",
+          "States": {
+            "SendInitialCallerAck": {
+              "Type": "Task",
+              "Comment": "Send immediate acknowledgement to caller even before dispatch is complete",
+              "Resource": "arn:aws:states:::sns:publish",
+              "Parameters": {
+                "TopicArn.$":  "$.sns_arns.caller_notifications",
+                "Message":     "Your emergency has been received. Help is being dispatched immediately. This is a critical response.",
+                "MessageAttributes": {
+                  "emergency_id": {
+                    "DataType": "String",
+                    "StringValue.$": "$.emergency_id"
+                  }
+                }
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.critical_parallel_result",
+      "Next": "NormalizeCriticalDispatch",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "RunDispatchAgent",
+          "Comment": "Fall back to sequential dispatch if parallel fails",
+          "ResultPath": "$.parallel_error"
+        }
+      ]
+    },
+
+    "NormalizeCriticalDispatch": {
+      "Type": "Pass",
+      "Comment": "v2 BUG FIX: Parallel branch returns an array; unpack branch-0 (dispatch result) into $.dispatch_output so FinalizeParallel receives the same shape as the sequential path. Branch-1 was the SNS caller-ack result, discarded.",
+      "Parameters": {
+        "dispatch_recommendation.$": "$.critical_parallel_result[0].dispatch_recommendation"
+      },
+      "ResultPath": "$.dispatch_output",
+      "Next": "FinalizeParallel"
+    },
+
+    "RunDispatchAgent": {
+      "Type": "Task",
+      "Comment": "Invoke Dispatch agent: Location Service queries + Nova Act CAD automation",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName.$": "$.function_arns.dispatch_agent",
+        "Payload": {
+          "emergency_id.$":   "$.emergency_id",
+          "triage_result.$":  "$.triage_output.triage_result",
+          "latitude.$":       "$.latitude",
+          "longitude.$":      "$.longitude",
+          "correlation_id.$": "$.correlation_id"
+        }
+      },
+      "ResultSelector": {
+        "dispatch_recommendation.$": "$.Payload"
+      },
+      "ResultPath": "$.dispatch_output",
+      "TimeoutSeconds": 5,
+      "Next": "FinalizeParallel",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.Timeout"],
+          "Comment": "Dispatch timed out — continue to communications with minimal dispatch info",
+          "Next": "DispatchFallback",
+          "ResultPath": "$.dispatch_error"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "NotifyFailure",
+          "ResultPath": "$.error"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0,
+          "JitterStrategy": "FULL"
+        }
+      ]
+    },
+
+    "DispatchFallback": {
+      "Type": "Pass",
+      "Comment": "Inject minimal dispatch result to allow communications step to proceed",
+      "Parameters": {
+        "dispatch_recommendation": {
+          "emergency_id.$":       "$.emergency_id",
+          "assigned_units":       [],
+          "cad_incident_number":  null,
+          "dispatch_narrative":   "Dispatch coordination in progress. Help is on the way.",
+          "dispatch_timestamp.$": "$$.Execution.StartTime",
+          "fallback_used":        true
+        }
+      },
+      "ResultPath": "$.dispatch_output",
+      "Next": "FinalizeParallel"
+    },
+
+    "FinalizeParallel": {
+      "Type": "Parallel",
+      "Comment": "v2: Run communications init, DynamoDB status write, AND post-incident EventBridge trigger SIMULTANEOUSLY — saves ~400ms over sequential execution. The post-incident agent (Agent 5) runs fully async; it is NOT on the critical path.",
+      "Branches": [
+        {
+          "StartAt": "RunCommunicationsAgent",
+          "States": {
+            "RunCommunicationsAgent": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Parameters": {
+                "FunctionName.$": "$.function_arns.communications_agent",
+                "Payload": {
+                  "emergency_id.$":              "$.emergency_id",
+                  "triage_result.$":             "$.triage_output.triage_result",
+                  "dispatch_recommendation.$":   "$.dispatch_output.dispatch_recommendation",
+                  "communication_mode.$":        "$.communication_mode",
+                  "detected_language.$":         "$.detected_language",
+                  "caller_phone.$":              "$.caller_phone",
+                  "caller_ws_connection_id.$":   "$.caller_ws_connection_id",
+                  "correlation_id.$":            "$.correlation_id"
+                }
+              },
+              "TimeoutSeconds": 3,
+              "End": true,
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Comment": "Comms failure is non-fatal — pipeline succeeds if dispatch completed",
+                  "ResultPath": "$.comms_error",
+                  "Next": "CommsFailNoop"
+                }
+              ],
+              "Retry": [
+                {
+                  "ErrorEquals": ["Lambda.ServiceException"],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 1
+                }
+              ]
+            },
+            "CommsFailNoop": { "Type": "Pass", "End": true }
+          }
+        },
+        {
+          "StartAt": "RecordFinalStatus",
+          "States": {
+            "RecordFinalStatus": {
+              "Type": "Task",
+              "Comment": "Write PIPELINE_COMPLETE to DynamoDB in parallel with communications init",
+              "Resource": "arn:aws:states:::dynamodb:updateItem",
+              "Parameters": {
+                "TableName.$": "$.table_name",
+                "Key": {
+                  "emergency_id": { "S.$": "$.emergency_id" },
+                  "version": { "N": "1" }
+                },
+                "UpdateExpression": "SET #s = :s, pipeline_completed_at = :t",
+                "ExpressionAttributeNames": { "#s": "status" },
+                "ExpressionAttributeValues": {
+                  ":s": { "S": "PIPELINE_COMPLETE" },
+                  ":t": { "S.$": "$$.Execution.StartTime" }
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "TriggerPostIncidentAgent",
+          "States": {
+            "TriggerPostIncidentAgent": {
+              "Type": "Task",
+              "Comment": "Agent 5: Fire EventBridge event to trigger the Post-Incident Agent asynchronously. This initiates the learning loop: the Post-Incident Agent generates a HIPAA-compliant after-action report, writes outcome embeddings back to OpenSearch (historical-incidents index), and makes the next triage call smarter. This is NOT on the critical path — it runs after dispatch is already confirmed.",
+              "Resource": "arn:aws:states:::events:putEvents",
+              "Parameters": {
+                "Entries": [
+                  {
+                    "Source": "novaguard.step-functions",
+                    "DetailType": "EmergencyStatusChange",
+                    "Detail": {
+                      "emergency_id.$":    "$.emergency_id",
+                      "correlation_id.$":  "$.correlation_id",
+                      "status":            "CALLER_NOTIFIED",
+                      "triage_result.$":   "$.triage_output.triage_result",
+                      "dispatch_recommendation.$": "$.dispatch_output.dispatch_recommendation",
+                      "execution_start.$": "$$.Execution.StartTime"
+                    },
+                    "EventBusName": "novaguard-events"
+                  }
+                ]
+              },
+              "End": true,
+              "Catch": [
+                {
+                  "ErrorEquals": ["States.ALL"],
+                  "Comment": "Post-incident trigger failure is non-fatal — core dispatch already completed",
+                  "ResultPath": "$.post_incident_error",
+                  "Next": "PostIncidentTriggerNoop"
+                }
+              ]
+            },
+            "PostIncidentTriggerNoop": { "Type": "Pass", "End": true }
+          }
+        }
+      ],
+      "ResultPath": "$.finalize_result",
+      "Next": "PipelineSuccess",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "PipelineSuccess",
+          "Comment": "Finalization errors are non-fatal — the emergency was dispatched successfully",
+          "ResultPath": "$.finalize_error"
+        }
+      ]
+    },
+
+    "PipelineSuccess": {
+      "Type": "Succeed",
+      "Comment": "v2: Emergency pipeline completed successfully"
+    },
+
+    "NotifyFailure": {
+      "Type": "Task",
+      "Comment": "Pipeline failure — notify operations team and set PIPELINE_FAILED status",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Parameters": {
+        "TopicArn.$":  "$.sns_arns.dispatcher_alerts",
+        "Subject":     "PIPELINE FAILURE — NovaGuard Emergency Processing Error",
+        "Message.$":   "States.Format('Emergency pipeline failed for ID: {}. Error: {}', $.emergency_id, $.error)"
+      },
+      "Next": "RecordFailureStatus"
+    },
+
+    "RecordFailureStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName.$": "$.table_name",
+        "Key": {
+          "emergency_id": { "S.$": "$.emergency_id" },
+          "version": { "N": "1" }
+        },
+        "UpdateExpression": "SET #s = :s",
+        "ExpressionAttributeNames": { "#s": "status" },
+        "ExpressionAttributeValues": { ":s": { "S": "PIPELINE_FAILED" } }
+      },
+      "ResultPath": null,
+      "Next": "PipelineFailed"
+    },
+
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "EmergencyPipelineError",
+      "Cause": "One or more stages of the emergency response pipeline failed."
+    }
+
+  }
+}

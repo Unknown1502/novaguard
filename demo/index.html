@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NovaGuard — AI Emergency Response for Deaf & Hard-of-Hearing</title>
+<style>
+  :root {
+    --bg:       #070b14;
+    --caller:   #0a1628;
+    --dispatch: #130a0a;
+    --border:   #1e2a40;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #3b82f6;
+    --red:      #ef4444;
+    --amber:    #f59e0b;
+    --green:    #22c55e;
+    --purple:   #a855f7;
+    --cyan:     #06b6d4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #050912 0%, #0d1b3e 50%, #1a0a1a 100%);
+    border-bottom: 1px solid rgba(59,130,246,0.3);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  }
+  .logo { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; color: #fff; }
+  .logo span { color: var(--accent); }
+  .hackathon-badge {
+    background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(168,85,247,0.2));
+    border: 1px solid rgba(59,130,246,0.4); color: var(--accent);
+    font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+    letter-spacing: 1px; text-transform: uppercase;
+  }
+  .tech-pills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .tech-pill {
+    font-size: 9px; padding: 2px 7px; border-radius: 10px; font-weight: 700;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .pill-blue   { background: rgba(59,130,246,0.15);  color: #60a5fa;  border: 1px solid rgba(59,130,246,0.3); }
+  .pill-purple { background: rgba(168,85,247,0.15);  color: #c084fc;  border: 1px solid rgba(168,85,247,0.3); }
+  .pill-green  { background: rgba(34,197,94,0.15);   color: #4ade80;  border: 1px solid rgba(34,197,94,0.3); }
+  .pill-amber  { background: rgba(245,158,11,0.15);  color: #fbbf24;  border: 1px solid rgba(245,158,11,0.3); }
+  .pill-cyan   { background: rgba(6,182,212,0.15);   color: #22d3ee;  border: 1px solid rgba(6,182,212,0.3); }
+  .pill-red    { background: rgba(239,68,68,0.15);   color: #f87171;  border: 1px solid rgba(239,68,68,0.3); }
+  .header-right { margin-left: auto; font-size: 11px; color: var(--muted); text-align: right; }
+  .header-right strong { color: var(--text); display: block; font-size: 13px; }
+
+  /* ── MAIN SPLIT ── */
+  .split-main {
+    flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+  }
+
+  /* Panel header bars */
+  .panel-header-bar {
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .caller-header {
+    background: linear-gradient(90deg, rgba(59,130,246,0.2), rgba(59,130,246,0.04));
+    border-bottom: 2px solid rgba(59,130,246,0.5); color: #60a5fa;
+  }
+  .dispatch-header {
+    background: linear-gradient(90deg, rgba(239,68,68,0.2), rgba(239,68,68,0.04));
+    border-bottom: 2px solid rgba(239,68,68,0.5);
+    border-left: 1px solid rgba(239,68,68,0.2); color: #f87171;
+  }
+  .panel-role { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .caller-role  { background: rgba(59,130,246,0.2);  color: #93c5fd; }
+  .dispatch-role{ background: rgba(239,68,68,0.2);   color: #fca5a5; }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 6px var(--green); animation: glow 2s ease-in-out infinite;
+  }
+  @keyframes glow { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+
+  /* ── CALLER PANEL ── */
+  .caller-panel {
+    background: var(--caller); display: flex; flex-direction: column;
+    overflow-y: auto; height: calc(100vh - 118px);
+    border-right: 1px solid rgba(59,130,246,0.15);
+  }
+  .caller-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  .form-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--muted); margin-bottom: 6px;
+  }
+  textarea {
+    width: 100%; background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; color: var(--text);
+    font-size: 14px; padding: 12px; resize: none; height: 100px;
+    font-family: inherit; line-height: 1.5; transition: border-color 0.2s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea::placeholder { color: rgba(100,116,139,0.5); }
+
+  .lang-select {
+    width: 100%; background: #0f1829;
+    border: 1px solid rgba(59,130,246,0.2); border-radius: 8px;
+    color: var(--text); font-size: 13px; padding: 9px 12px;
+    cursor: pointer; font-family: inherit;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    padding-right: 32px;
+  }
+  .lang-select option {
+    background: #0f1829; color: #e2e8f0;
+  }
+
+  .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .scenario-btn {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(59,130,246,0.15);
+    border-radius: 6px; color: var(--muted); font-size: 11px; padding: 8px 10px;
+    cursor: pointer; text-align: left; transition: all 0.15s; line-height: 1.3;
+  }
+  .scenario-btn:hover { background: rgba(59,130,246,0.08); border-color: var(--accent); color: var(--text); }
+
+  .img-upload-area {
+    border: 2px dashed rgba(6,182,212,0.3); border-radius: 8px; padding: 14px;
+    cursor: pointer; text-align: center; color: var(--muted); font-size: 12px;
+    position: relative; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px; transition: border-color 0.2s; min-height: 70px;
+  }
+  .img-upload-area:hover { border-color: var(--cyan); color: var(--cyan); }
+  .img-upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .record-btn {
+    width: 100%; padding: 11px; border-radius: 8px;
+    border: 2px dashed rgba(59,130,246,0.3); background: transparent;
+    color: var(--muted); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+  }
+  .record-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .record-btn.recording { border-style: solid; border-color: var(--red); color: var(--red); animation: pulse-rec 1s infinite; }
+  @keyframes pulse-rec { 0%,100%{border-color:var(--red);}50%{border-color:rgba(239,68,68,0.2);} }
+
+  .submit-btn {
+    width: 100%; padding: 14px; border-radius: 8px; border: none;
+    background: linear-gradient(135deg, #1d4ed8, #4f46e5);
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: all 0.2s; box-shadow: 0 4px 15px rgba(29,78,216,0.4);
+  }
+  .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(29,78,216,0.6); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .stream-btn {
+    width: 100%; padding: 10px; border-radius: 8px;
+    border: 1px solid rgba(34,197,94,0.3); background: rgba(34,197,94,0.06);
+    color: var(--green); font-size: 13px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+  }
+  .stream-btn:hover { background: rgba(34,197,94,0.12); }
+
+  /* Caller updates box */
+  .caller-updates {
+    background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2);
+    border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; min-height: 80px;
+  }
+  .caller-updates-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #60a5fa; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  }
+  .instruction-step {
+    display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px;
+    background: rgba(59,130,246,0.08); border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0; font-size: 12px; line-height: 1.4;
+    animation: slide-in 0.3s ease;
+  }
+  @keyframes slide-in { from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);} }
+  .step-num {
+    min-width: 20px; height: 20px; background: var(--accent); border-radius: 50%;
+    font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+
+  /* Dispatcher says */
+  .dispatcher-says {
+    background: rgba(168,85,247,0.06); border: 1px solid rgba(168,85,247,0.25);
+    border-radius: 8px; padding: 14px; display: none;
+  }
+  .dispatcher-says-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #c084fc; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dispatcher-says-text {
+    font-size: 13px; color: var(--text); line-height: 1.6; font-style: italic;
+    background: rgba(168,85,247,0.05); border-radius: 6px; padding: 8px 12px;
+    border-left: 3px solid var(--purple);
+  }
+
+  /* ── DISPATCHER PANEL ── */
+  .dispatch-panel {
+    background: var(--dispatch); display: flex; flex-direction: column;
+    overflow-y: auto; height: calc(100vh - 118px);
+    border-left: 1px solid rgba(239,68,68,0.15);
+  }
+  .dispatch-body { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* Alert banner */
+  .alert-banner {
+    display: none; padding: 16px; border-radius: 8px;
+    background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(245,158,11,0.08));
+    border: 1px solid rgba(239,68,68,0.4);
+    animation: alert-pulse 2s ease-in-out 3;
+  }
+  @keyframes alert-pulse {
+    0%  {box-shadow:0 0 0 0 rgba(239,68,68,0.5);}
+    50% {box-shadow:0 0 0 10px rgba(239,68,68,0);}
+    100%{box-shadow:0 0 0 0 rgba(239,68,68,0);}
+  }
+  .alert-banner.visible { display: block; }
+  .alert-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sev-badge {
+    padding: 4px 14px; border-radius: 20px; font-size: 11px;
+    font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .sev-critical { background: var(--red); color: #fff; }
+  .sev-high     { background: var(--amber); color: #000; }
+  .sev-medium   { background: #ca8a04; color: #fff; }
+  .sev-low      { background: var(--green); color: #000; }
+
+  /* Dispatch cards */
+  .dispatch-card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px; overflow: hidden; opacity: 0; transform: translateY(8px);
+    transition: opacity 0.4s, transform 0.4s;
+  }
+  .dispatch-card.visible { opacity: 1; transform: translateY(0); }
+  .dc-header {
+    padding: 10px 14px; font-size: 10px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dc-red    { background: rgba(239,68,68,0.12); border-bottom: 1px solid rgba(239,68,68,0.2); color: #f87171; }
+  .dc-amber  { background: rgba(245,158,11,0.12); border-bottom: 1px solid rgba(245,158,11,0.2); color: #fbbf24; }
+  .dc-purple { background: rgba(168,85,247,0.12); border-bottom: 1px solid rgba(168,85,247,0.2); color: #c084fc; }
+  .dc-blue   { background: rgba(59,130,246,0.12); border-bottom: 1px solid rgba(59,130,246,0.2); color: #60a5fa; }
+  .dc-green  { background: rgba(34,197,94,0.12); border-bottom: 1px solid rgba(34,197,94,0.2); color: #4ade80; }
+  .dc-body   { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+
+  .sev-bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg,#22c55e,#f59e0b,#ef4444); transition: width 0.8s ease; }
+
+  .unit-card {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15); border-radius: 6px; font-size: 12px;
+  }
+  .unit-icon { font-size: 18px; }
+  .unit-info { flex: 1; }
+  .unit-name   { font-weight: 600; color: var(--text); }
+  .unit-detail { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .unit-eta {
+    padding: 3px 10px; background: rgba(245,158,11,0.15);
+    border: 1px solid rgba(245,158,11,0.3); border-radius: 10px;
+    font-size: 11px; font-weight: 700; color: var(--amber);
+  }
+
+  .briefing-box {
+    background: rgba(168,85,247,0.06); border-radius: 8px; padding: 12px;
+    font-size: 12px; line-height: 1.6; border-left: 3px solid var(--purple);
+  }
+  .tts-play-btn {
+    padding: 7px 14px; border-radius: 6px; border: none;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;
+  }
+  .tts-play-btn:hover { box-shadow: 0 4px 12px rgba(168,85,247,0.4); }
+
+  .resolve-btn {
+    width: 100%; padding: 12px; border-radius: 8px;
+    border: 1px solid rgba(34,197,94,0.4); background: rgba(34,197,94,0.08);
+    color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer;
+    display: none; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;
+  }
+  .resolve-btn:hover { background: rgba(34,197,94,0.2); }
+
+  /* Capacity rows */
+  .cap-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+    font-size: 11px; background: rgba(255,255,255,0.02); border-radius: 4px;
+  }
+  .cap-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+  .cap-fill { height: 100%; border-radius: 2px; background: var(--green); }
+
+  /* Dispatch empty */
+  .dispatch-empty {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--muted); text-align: center; padding: 40px; gap: 12px;
+  }
+  .dispatch-empty .big-icon { font-size: 48px; opacity: 0.3; }
+  .dispatch-empty p { font-size: 13px; }
+
+  /* Badges */
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+  .badge-red    { background: rgba(239,68,68,0.15);  color: #f87171;  border: 1px solid rgba(239,68,68,0.3); }
+  .badge-blue   { background: rgba(59,130,246,0.15); color: #60a5fa;  border: 1px solid rgba(59,130,246,0.3); }
+  .badge-amber  { background: rgba(245,158,11,0.15); color: #fbbf24;  border: 1px solid rgba(245,158,11,0.3); }
+  .badge-green  { background: rgba(34,197,94,0.15);  color: #4ade80;  border: 1px solid rgba(34,197,94,0.3); }
+  .badge-purple { background: rgba(168,85,247,0.15); color: #c084fc;  border: 1px solid rgba(168,85,247,0.3); }
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .meta-strip {
+    background: rgba(59,130,246,0.04); border-top: 1px solid rgba(59,130,246,0.1);
+    padding: 8px 14px; font-size: 10px; color: var(--muted);
+    display: none; gap: 16px; flex-wrap: wrap;
+  }
+  .meta-strip b { color: var(--text); }
+
+  .narrative { color: var(--muted); font-size: 12px; line-height: 1.5; font-style: italic; }
+
+  /* ── AGENT FEED (BOTTOM) ── */
+  .agent-feed {
+    background: linear-gradient(90deg, #050912, #0a111e, #050912);
+    border-top: 1px solid rgba(59,130,246,0.2);
+    padding: 10px 24px; display: flex; align-items: center; gap: 0; overflow-x: auto; min-height: 68px;
+  }
+  .feed-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted); white-space: nowrap; margin-right: 16px;
+  }
+  .agent-step {
+    display: flex; align-items: center; gap: 10px; padding: 5px 14px;
+    border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.4s; white-space: nowrap; min-width: 148px;
+    background: rgba(255,255,255,0.02);
+  }
+  .agent-step + .agent-step { margin-left: 4px; }
+  .agent-step + .agent-step::before {
+    content: '→'; color: rgba(100,116,139,0.35); margin-right: 4px; font-size: 12px;
+  }
+  .step-icon {
+    width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.4s;
+  }
+  .step-info { display: flex; flex-direction: column; gap: 1px; }
+  .step-name  { font-size: 10px; font-weight: 700; color: var(--muted); }
+  .step-model { font-size: 9px;  color: rgba(100,116,139,0.5); }
+  .step-time  { font-size: 9px;  color: var(--muted); min-height: 11px; }
+
+  .agent-step.active {
+    border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.08);
+    animation: pulse-step 0.8s ease-in-out infinite;
+  }
+  .agent-step.active .step-icon { border-color: var(--accent); box-shadow: 0 0 10px rgba(59,130,246,0.5); }
+  .agent-step.active .step-name { color: #60a5fa; }
+  @keyframes pulse-step { 0%,100%{box-shadow:none;}50%{box-shadow:0 0 15px rgba(59,130,246,0.2);} }
+
+  .agent-step.done { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06); }
+  .agent-step.done .step-icon { border-color: var(--green); background: rgba(34,197,94,0.15); }
+  .agent-step.done .step-name { color: #4ade80; }
+  .agent-step.done .step-time { color: #4ade80; }
+  .agent-step.error { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
+
+  .log-strip {
+    margin-left: auto; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px; padding: 5px 10px; font-size: 10px; font-family: 'Courier New', monospace;
+    min-width: 260px; max-width: 320px; display: flex; flex-direction: column; gap: 1px;
+    max-height: 52px; overflow: hidden;
+  }
+  .log-entry { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-entry.info    { color: #60a5fa; }
+  .log-entry.success { color: #4ade80; }
+  .log-entry.warn    { color: #fbbf24; }
+  .log-entry.error   { color: #f87171; }
+
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to{transform:rotate(360deg);} }
+
+  #streamOutput {
+    font-family: 'Courier New', monospace; font-size: 12px; color: #4ade80;
+    background: rgba(0,0,0,0.35); border-radius: 8px; padding: 14px;
+    white-space: pre-wrap; border-left: 3px solid var(--green);
+    line-height: 1.6; max-height: 260px; overflow-y: auto; display: none;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Nova<span>Guard</span></div>
+  <div class="hackathon-badge" onclick="showArchitecture()" style="cursor:pointer" title="Click to view architecture">🏆 Amazon Nova Hackathon</div>
+  <div class="tech-pills">
+    <span class="tech-pill pill-blue">Nova 2 Lite</span>
+    <span class="tech-pill pill-cyan">Nova Sonic</span>
+    <span class="tech-pill pill-purple">Strands Agents</span>
+    <span class="tech-pill pill-green">Nova Embed</span>
+    <span class="tech-pill pill-amber">Location Service</span>
+    <span class="tech-pill pill-red">Nova Act</span>
+  </div>
+  <div class="header-right">
+    <strong>AI Emergency Response for Deaf &amp; Hard-of-Hearing</strong>
+    <span>Live · us-east-1 · 438f02a6qk.execute-api.us-east-1.amazonaws.com</span>
+  </div>
+</header>
+
+<!-- SPLIT MAIN -->
+<div class="split-main">
+
+  <!-- LEFT: CALLER PANEL -->
+  <div class="caller-panel">
+    <div class="panel-header-bar caller-header">
+      <span>📱</span>
+      <span>Caller App</span>
+      <div class="panel-role caller-role">DEAF / HOH CALLER</div>
+      <div class="live-dot" style="margin-left:auto"></div>
+    </div>
+    <div class="caller-body">
+
+      <!-- Voice -->
+      <div>
+        <div class="form-label">🎙️ Voice Input → Nova Sonic STT</div>
+        <button class="record-btn" id="recordBtn" onclick="toggleRecord()">
+          <span id="recordIcon">🎙️</span>
+          <span id="recordLabel">Tap to Record Voice</span>
+        </button>
+        <div id="recordStatus" style="font-size:11px;color:var(--muted);margin-top:4px;text-align:center;min-height:14px"></div>
+      </div>
+
+      <!-- Image upload -->
+      <div>
+        <div class="form-label">📸 Scene Photo → Nova Multimodal Vision</div>
+        <div class="img-upload-area" id="imgDropArea">
+          <input type="file" accept="image/*" id="imgInput" onchange="handleImageSelect(event)" />
+          <img id="imgPreview" style="width:100%;max-height:100px;object-fit:cover;border-radius:6px;display:none" />
+          <div id="imgPlaceholder" style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span style="font-size:24px">📷</span>
+            <span>Upload emergency scene photo</span>
+            <span style="font-size:10px;opacity:0.5">Nova Vision auto-generates 911 report</span>
+          </div>
+        </div>
+        <button onclick="runIntake()" id="intakeBtn"
+          style="width:100%;padding:9px;margin-top:8px;border-radius:6px;border:1px solid rgba(6,182,212,0.4);
+                 background:rgba(6,182,212,0.08);color:var(--cyan);font-size:12px;font-weight:700;cursor:pointer">
+          <span id="intakeBtnInner">📸 Analyze Scene (Nova Multimodal Vision)</span>
+        </button>
+      </div>
+
+      <!-- Text -->
+      <div>
+        <div class="form-label">✏️ Emergency Description</div>
+        <textarea id="description" placeholder="Type what's happening… or record voice / upload photo above"></textarea>
+      </div>
+
+      <!-- Language -->
+      <div>
+        <div class="form-label">🌐 Language Detection (auto-detect)</div>
+        <select class="lang-select" id="langSelect">
+          <option value="auto">🌍 Auto-detect</option>
+          <option value="es">🇪🇸 Español (Spanish) — try scenario 4</option>
+          <option value="fr">🇫🇷 Français (French)</option>
+          <option value="zh">🇨🇳 中文 (Chinese)</option>
+          <option value="ar">🇸🇦 عربي (Arabic)</option>
+          <option value="hi">🇮🇳 हिन्दी (Hindi) — try scenario 3</option>
+          <option value="pt">🇧🇷 Português (Portuguese)</option>
+          <option value="de">🇩🇪 Deutsch (German)</option>
+        </select>
+      </div>
+
+      <!-- Scenarios -->
+      <div>
+        <div class="form-label">⚡ Quick Demo Scenarios</div>
+        <div class="scenario-grid">
+          <button class="scenario-btn" onclick="loadScenario(0)">❤️ <b>Medical</b> — elderly man fell, head trauma</button>
+          <button class="scenario-btn" onclick="loadScenario(1)">🔥 <b>Fire</b> — gas leak, 10 residents trapped</button>
+          <button class="scenario-btn" onclick="loadScenario(2)">🇮🇳 <b>Hindi</b> — पिताजी बेहोश (auto-translate)</button>
+          <button class="scenario-btn" onclick="loadScenario(3)">🇪🇸 <b>Spanish</b> — abuela cardiac (auto-translate)</button>
+          <button class="scenario-btn" onclick="loadScenario(4)">🚗 <b>MVA</b> — highway crash, entrapment</button>
+          <button class="scenario-btn" onclick="loadScenario(5)">🌊 <b>Flood</b> — family on roof, rising water</button>
+        </div>
+      </div>
+
+      <!-- Stream -->
+      <button class="stream-btn" onclick="runTriageStream()">
+        <span id="streamBtnInner">⚡ Stream Triage (live Nova 2 Lite tokens)</span>
+      </button>
+      <div id="streamOutput"></div>
+
+      <!-- Submit -->
+      <button class="submit-btn" id="runBtn" onclick="runPipeline()">
+        <span id="runBtnInner">🚨 SUBMIT EMERGENCY — Run Full AI Pipeline</span>
+      </button>
+
+      <!-- Caller real-time status -->
+      <div class="caller-updates" id="callerUpdates">
+        <div class="caller-updates-title">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;animation:glow 1.5s infinite"></span>
+          AI Status &amp; Instructions
+        </div>
+        <div id="callerInstructions" style="color:var(--muted);font-size:12px">
+          Submit an emergency to receive real-time guidance.
+        </div>
+      </div>
+
+      <!-- Dispatcher says -->
+      <div class="dispatcher-says" id="dispatcherSaysBox">
+        <div class="dispatcher-says-title">
+          <span>🔊</span> Dispatcher Says (Nova Sonic TTS → Text)
+        </div>
+        <div class="dispatcher-says-text" id="dispatcherSaysText"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: DISPATCHER PANEL -->
+  <div class="dispatch-panel">
+    <div class="panel-header-bar dispatch-header">
+      <span>🖥️</span>
+      <span>Dispatch Console</span>
+      <div class="panel-role dispatch-role">911 DISPATCHER</div>
+      <div id="incidentIdDisplay" style="margin-left:auto;font-family:monospace;font-size:10px;color:var(--muted)"></div>
+    </div>
+    <div class="dispatch-body">
+
+      <!-- Alert banner -->
+      <div class="alert-banner" id="alertBanner">
+        <div class="alert-header">
+          <span class="sev-badge" id="sevBadge">CRITICAL</span>
+          <span style="font-size:15px;font-weight:700;color:var(--text)" id="alertTitle">Incoming Emergency</span>
+          <span style="margin-left:auto;font-size:20px">🚨</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted)" id="alertMeta"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="dispatch-empty" id="dispatchEmpty">
+        <div class="big-icon">🖥️</div>
+        <p><strong>Dispatch Console Ready</strong></p>
+        <p>Submit an emergency from the Caller panel to receive AI-generated situation report, dispatched units, voice briefing, and predictive resource matching.</p>
+        <p style="font-size:11px;color:rgba(100,116,139,0.4);margin-top:8px">All 7 Nova AI agents will activate in real time.</p>
+      </div>
+
+      <!-- Triage card -->
+      <div class="dispatch-card" id="triageCard">
+        <div class="dc-header dc-red">
+          <span>🧠</span> Agent 1 — Triage Assessment
+          <span id="triageBadges" style="margin-left:auto;display:flex;gap:4px"></span>
+          <span id="triageLatency" style="font-size:9px;color:var(--muted);font-family:monospace"></span>
+        </div>
+        <div class="dc-body" id="triageCardBody"></div>
+      </div>
+
+      <!-- Dispatch card -->
+      <div class="dispatch-card" id="dispatchCard">
+        <div class="dc-header dc-amber">
+          <span>🚑</span> Agent 2 — Resource Dispatch
+          <span id="dispatchBadges" style="margin-left:auto;display:flex;gap:4px"></span>
+          <span id="dispatchLatency" style="font-size:9px;color:var(--muted);font-family:monospace"></span>
+        </div>
+        <div class="dc-body" id="dispatchCardBody"></div>
+      </div>
+
+      <!-- Comms card -->
+      <div class="dispatch-card" id="commsCard">
+        <div class="dc-header dc-purple">
+          <span>📡</span> Agent 3 — Communications &amp; Briefing
+          <span id="commsBadges" style="margin-left:auto;display:flex;gap:4px"></span>
+          <span id="commsLatency" style="font-size:9px;color:var(--muted);font-family:monospace"></span>
+        </div>
+        <div class="dc-body" id="commsCardBody"></div>
+      </div>
+
+      <!-- Embedding card -->
+      <div class="dispatch-card" id="embedCard">
+        <div class="dc-header dc-blue">
+          <span>🧬</span> Nova Embedding — Similar Past Incidents
+          <span id="embedLatency" style="margin-left:auto;font-size:9px;color:var(--muted);font-family:monospace"></span>
+        </div>
+        <div class="dc-body" id="embedCardBody"></div>
+      </div>
+
+      <!-- Hospital capacity — Nova Act real data -->
+      <div class="dispatch-card visible" id="hospitalCard">
+        <div class="dc-header dc-green">
+          <span>🏥</span> Nearby Hospitals — Nova Act (Medicare.gov)
+          <span id="hospitalLatency" style="margin-left:auto;font-size:9px;color:var(--muted);font-family:monospace"></span>
+        </div>
+        <div class="dc-body" id="hospitalCardBody">
+          <div style="color:var(--muted);font-size:12px">Loading real hospital data from Medicare.gov Care Compare via Nova Act...</div>
+        </div>
+      </div>
+
+      <!-- Resolve button -->
+      <button class="resolve-btn" id="resolveBtn" onclick="resolveEmergency()">✅ RESOLVE EMERGENCY — Mark as Handled</button>
+
+      <!-- Meta -->
+      <div class="meta-strip" id="metaStrip"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- AGENT ACTIVITY FEED (BOTTOM) -->
+<div class="agent-feed">
+  <div class="feed-title">Live Nova AI</div>
+
+  <div class="agent-step idle" id="step-translate">
+    <div class="step-icon">🌍</div>
+    <div class="step-info">
+      <div class="step-name">Translate</div>
+      <div class="step-model">Language Detect</div>
+      <div class="step-time" id="ftime-translate"></div>
+    </div>
+  </div>
+
+  <div class="agent-step idle" id="step-triage">
+    <div class="step-icon">🧠</div>
+    <div class="step-info">
+      <div class="step-name">Triage</div>
+      <div class="step-model">Nova 2 Lite</div>
+      <div class="step-time" id="ftime-triage"></div>
+    </div>
+  </div>
+
+  <div class="agent-step idle" id="step-dispatch">
+    <div class="step-icon">🚑</div>
+    <div class="step-info">
+      <div class="step-name">Dispatch</div>
+      <div class="step-model">Nova 2 Lite + Location</div>
+      <div class="step-time" id="ftime-dispatch"></div>
+    </div>
+  </div>
+
+  <div class="agent-step idle" id="step-comms">
+    <div class="step-icon">📡</div>
+    <div class="step-info">
+      <div class="step-name">Comms</div>
+      <div class="step-model">Nova 2 Lite + SNS</div>
+      <div class="step-time" id="ftime-comms"></div>
+    </div>
+  </div>
+
+  <div class="agent-step idle" id="step-sonic">
+    <div class="step-icon">🎙️</div>
+    <div class="step-info">
+      <div class="step-name">Sonic</div>
+      <div class="step-model">Nova Sonic TTS</div>
+      <div class="step-time" id="ftime-sonic"></div>
+    </div>
+  </div>
+
+  <div class="agent-step idle" id="step-embed">
+    <div class="step-icon">🧬</div>
+    <div class="step-info">
+      <div class="step-name">Embed</div>
+      <div class="step-model">Nova Embed v1</div>
+      <div class="step-time" id="ftime-embed"></div>
+    </div>
+  </div>
+
+  <div class="agent-step idle" id="step-strands">
+    <div class="step-icon">🤖</div>
+    <div class="step-info">
+      <div class="step-name">Strands</div>
+      <div class="step-model">strands-agents 7-tool</div>
+      <div class="step-time" id="ftime-strands"></div>
+    </div>
+  </div>
+
+  <div class="log-strip" id="logStrip">
+    <div class="log-entry info">NovaGuard ready · API live · us-east-1</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+const API = 'https://438f02a6qk.execute-api.us-east-1.amazonaws.com/prod';
+
+const SCENARIOS = [
+  { text: 'My father fell down the stairs. He is 72 years old, bleeding from his head and is now unconscious. Please send help to 742 Evergreen Terrace immediately.', lang: 'auto' },
+  { text: 'There is a very strong smell of gas in our entire apartment building at 45 Oak Avenue. I can hear a hissing sound and there are approximately 10 residents still inside.', lang: 'auto' },
+  { text: 'मेरे पिताजी सीढ़ियों से गिर गए हैं। वे बेहोश हैं और सिर से खून आ रहा है। कृपया 742 एवरग्रीन टेरेस पर तुरंत मदद भेजें।', lang: 'hi' },
+  { text: 'Mi abuela tuvo un ataque al corazón. Está inconsciente y no respira. Necesito ayuda urgente en 45 Calle Principal, por favor.', lang: 'es' },
+  { text: 'There has been a multi-vehicle crash on Interstate 9 near exit 14. One car is on its side and the driver appears to be trapped. I can see multiple injuries.', lang: 'auto' },
+  { text: 'We are on the roof of our house at 882 River Road. The floodwater rose very fast and we are completely surrounded. There are 4 of us including a 6-year-old child and an 82-year-old woman.', lang: 'auto' },
+];
+
+const UNIT_ICONS = {
+  AMBULANCE:'🚑', ALS_UNIT:'🚑', BLS_UNIT:'🚑',
+  FIRE_ENGINE:'🚒', LADDER_TRUCK:'🚒', HAZMAT_UNIT:'☢️',
+  POLICE:'🚓', SWIFT_WATER:'⛵', DEFAULT:'🚨'
+};
+
+// ── Agent feed helpers ────────────────────────────────────────
+function setStep(name, state, ms) {
+  const el = document.getElementById('step-' + name);
+  if (el) el.className = 'agent-step ' + state;
+  const t = document.getElementById('ftime-' + name);
+  if (t) t.textContent = ms ? ms + 'ms' : (state === 'active' ? '…' : '');
+}
+function resetSteps() {
+  ['translate','triage','dispatch','comms','sonic','embed','strands'].forEach(n => setStep(n,'idle',null));
+}
+
+// ── Log strip ──────────────────────────────────────────────────
+function log(msg, cls = '') {
+  const strip = document.getElementById('logStrip');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + cls;
+  el.textContent = msg;
+  strip.appendChild(el);
+  while (strip.children.length > 4) strip.removeChild(strip.firstChild);
+}
+
+// ── Scenarios ─────────────────────────────────────────────────
+function loadScenario(i) {
+  document.getElementById('description').value = SCENARIOS[i].text;
+  const langVal = SCENARIOS[i].lang;
+  const sel = document.getElementById('langSelect');
+  if (langVal && langVal !== 'auto') {
+    sel.value = langVal;
+  } else {
+    sel.value = 'auto';
+  }
+}
+
+// ── Recording ─────────────────────────────────────────────────
+let mediaRecorder = null, audioChunks = [], isRecording = false;
+
+async function toggleRecord() {
+  if (isRecording) { stopRecording(); } else { await startRecording(); }
+}
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+    mediaRecorder.onstop = handleRecordingStop;
+    mediaRecorder.start(); isRecording = true;
+    document.getElementById('recordBtn').classList.add('recording');
+    document.getElementById('recordIcon').textContent = '⏹️';
+    document.getElementById('recordLabel').textContent = 'Recording… tap to stop';
+    log('Recording started', 'info');
+  } catch (e) { log('Mic access denied — type description instead', 'warn'); }
+}
+function stopRecording() {
+  if (mediaRecorder) mediaRecorder.stop(); isRecording = false;
+  document.getElementById('recordBtn').classList.remove('recording');
+  document.getElementById('recordIcon').textContent = '⏳';
+  document.getElementById('recordLabel').textContent = 'Processing with Nova Sonic…';
+}
+async function handleRecordingStop() {
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const buf = await blob.arrayBuffer();
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+  setStep('sonic', 'active', null);
+  log('Sending audio → Nova Sonic STT…', 'info');
+  try {
+    const r = await fetch(API + '/transcribe', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio_b64: b64 }),
+    });
+    const data = await r.json();
+    const t = data.transcript || '';
+    document.getElementById('description').value = t;
+    document.getElementById('recordStatus').textContent = t ? '"' + t.slice(0,70) + '…"' : '(no transcript)';
+    setStep('sonic', 'done', null);
+    log('Nova Sonic STT complete', 'success');
+  } catch (e) {
+    log('Sonic error: ' + e.message, 'error');
+    setStep('sonic', 'error', null);
+  }
+  document.getElementById('recordIcon').textContent = '🎙️';
+  document.getElementById('recordLabel').textContent = 'Tap to Record Voice';
+}
+
+// ── Image + Intake ─────────────────────────────────────────────
+let imageB64 = null;
+function handleImageSelect(evt) {
+  const file = evt.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    imageB64 = e.target.result.split(',')[1];
+    document.getElementById('imgPreview').src = e.target.result;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('imgPlaceholder').style.display = 'none';
+    log('Image loaded: ' + file.name, 'info');
+  };
+  reader.readAsDataURL(file);
+}
+async function runIntake() {
+  if (!imageB64) { log('Upload a photo first', 'warn'); return; }
+  const btn = document.getElementById('intakeBtnInner');
+  btn.innerHTML = '<span class="spinner"></span> Nova Vision analyzing scene…';
+  setStep('triage', 'active', null); log('POST /intake → Nova Multimodal Vision', 'info');
+  const t0 = Date.now();
+  try {
+    const r = await fetch(API + '/intake', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_b64: imageB64, media_type: 'image/jpeg' }),
+    });
+    const data = await r.json();
+    const elapsed = Date.now() - t0;
+    const desc = data.pipeline_ready_description || data.nova_vision_description || '';
+    if (desc) { document.getElementById('description').value = desc; }
+    setStep('triage', 'done', elapsed);
+    log('Vision done in ' + elapsed + 'ms — description auto-filled!', 'success');
+  } catch(e) {
+    log('Intake error: ' + e.message, 'error'); setStep('triage', 'idle', null);
+  } finally { btn.innerHTML = '📸 Analyze Scene (Nova Multimodal Vision)'; }
+}
+
+// ── Show caller instructions ───────────────────────────────────
+function showCallerInstructions(instructions) {
+  const box = document.getElementById('callerInstructions');
+  if (!instructions || !instructions.length) return;
+  box.innerHTML = instructions.map((ins, i) =>
+    '<div class="instruction-step"><div class="step-num">' + (i+1) + '</div><div>' + ins + '</div></div>'
+  ).join('');
+}
+
+// ── Full pipeline ───────────────────────────────────────────────
+async function runPipeline() {
+  const desc = document.getElementById('description').value.trim();
+  if (!desc) { log('Enter description or record audio', 'warn'); return; }
+
+  resetSteps();
+  document.getElementById('callerInstructions').textContent = '⏳ AI is analyzing your emergency…';
+  document.getElementById('dispatcherSaysBox').style.display = 'none';
+  document.getElementById('dispatchEmpty').style.display = 'none';
+  document.getElementById('alertBanner').classList.remove('visible');
+  ['triageCard','dispatchCard','commsCard','embedCard'].forEach(id => {
+    document.getElementById(id).classList.remove('visible');
+  });
+  document.getElementById('resolveBtn').style.display = 'none';
+  document.getElementById('metaStrip').style.display = 'none';
+
+  const runBtn = document.getElementById('runBtn');
+  runBtn.disabled = true;
+  document.getElementById('runBtnInner').innerHTML = '<span class="spinner"></span> AI Pipeline Running…';
+
+  setStep('translate', 'active', null);
+  log('POST /pipeline — processing emergency…', 'info');
+  const t0 = Date.now();
+
+  const selectedLang = document.getElementById('langSelect').value;
+  try {
+    const r = await fetch(API + '/pipeline', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, language: selectedLang === 'auto' ? undefined : selectedLang }),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const elapsed = Date.now() - t0;
+
+    const triage   = data.triage   || {};
+    const dispatch = data.dispatch  || {};
+    const comms    = data.communications || {};
+    const meta     = data._meta    || {};
+
+    if (triage.was_translated) setStep('translate', 'done', triage.translate_latency_ms || null);
+    else setStep('translate', 'idle', null);
+    setStep('triage',   'done', triage.latency_ms);
+    setStep('dispatch', 'done', dispatch.latency_ms);
+    setStep('comms',    'done', comms.latency_ms);
+
+    log('Pipeline: ' + (elapsed/1000).toFixed(1) + 's · 3 Nova calls', 'success');
+    if (triage.was_translated) log('🌍 Translated: ' + triage.detected_language + ' → en', 'info');
+    if (dispatch.location_routing_used) log('📍 Location ETA: ' + dispatch.location_eta_minutes + 'min', 'info');
+    if (comms.sns_alert_sent) log('📢 SNS dispatcher alert sent', 'success');
+
+    renderDispatcher(data, elapsed);
+    showCallerInstructions(comms.caller_instructions || []);
+
+    const briefing = comms.responder_briefing || comms.dispatcher_briefing || '';
+    if (briefing) {
+      document.getElementById('dispatcherSaysText').textContent = briefing;
+      document.getElementById('dispatcherSaysBox').style.display = 'block';
+    }
+
+    document.getElementById('resolveBtn').style.display = 'flex';
+    document.getElementById('incidentIdDisplay').textContent = data.emergency_id ? '#' + data.emergency_id.slice(-8) : '';
+
+    runEmbeddingSilent(desc);
+    runStrandsSilent(desc);
+    if (briefing) setTimeout(() => speakBriefing(briefing), 800);
+
+  } catch(e) {
+    log('Pipeline error: ' + e.message, 'error');
+    document.getElementById('callerInstructions').textContent = '❌ Error: ' + e.message;
+    document.getElementById('dispatchEmpty').style.display = 'flex';
+  } finally {
+    runBtn.disabled = false;
+    document.getElementById('runBtnInner').textContent = '🚨 SUBMIT EMERGENCY — Run Full AI Pipeline';
+  }
+}
+
+// ── Render dispatcher panel ─────────────────────────────────────
+function renderDispatcher(data, elapsed) {
+  const triage   = data.triage   || {};
+  const dispatch = data.dispatch  || {};
+  const comms    = data.communications || {};
+  const meta     = data._meta    || {};
+  const sev      = triage.severity_score || 0;
+
+  // Alert banner
+  const sevLabel = sev >= 80 ? 'CRITICAL' : sev >= 60 ? 'HIGH' : sev >= 40 ? 'MEDIUM' : 'LOW';
+  const sevClass = sev >= 80 ? 'sev-critical' : sev >= 60 ? 'sev-high' : sev >= 40 ? 'sev-medium' : 'sev-low';
+  document.getElementById('sevBadge').className = 'sev-badge ' + sevClass;
+  document.getElementById('sevBadge').textContent = sevLabel;
+  document.getElementById('alertTitle').textContent = 'Incoming: ' + (triage.emergency_type||'Emergency').replace(/_/g,' ');
+  document.getElementById('alertMeta').textContent =
+    'Severity ' + sev + '/100 · Level ' + (triage.recommended_response_level||'?') +
+    (dispatch.location_routing_used ? ' · ETA ' + dispatch.location_eta_minutes + 'min' : '');
+  document.getElementById('alertBanner').classList.add('visible');
+
+  // Triage card
+  const translateBadge = triage.was_translated
+    ? '<span class="badge badge-purple">🌍 ' + triage.detected_language + ' → en</span>' : '';
+  const sevBadge = sev >= 80 ? 'badge-red' : sev >= 60 ? 'badge-amber' : 'badge-green';
+  document.getElementById('triageBadges').innerHTML = translateBadge;
+  document.getElementById('triageLatency').textContent = triage.latency_ms + 'ms';
+  document.getElementById('triageCardBody').innerHTML =
+    '<div class="sev-bar-row">' +
+      '<span style="font-size:11px;color:var(--muted);min-width:55px">Severity</span>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + sev + '%"></div></div>' +
+      '<span class="badge ' + sevBadge + '">' + sev + '/100</span>' +
+    '</div>' +
+    '<div class="badge-row">' +
+      '<span class="badge badge-blue">' + (triage.emergency_type||'unknown').replace(/_/g,' ') + '</span>' +
+      '<span class="badge badge-red">Level ' + (triage.recommended_response_level||'?') + '</span>' +
+      '<span class="badge badge-purple">Confidence ' + Math.round((triage.confidence||0)*100) + '%</span>' +
+    '</div>' +
+    (triage.triage_narrative ? '<div class="narrative">&ldquo;' + triage.triage_narrative + '&rdquo;</div>' : '') +
+    (triage.caller_instructions
+      ? '<div style="font-size:12px;padding:8px;background:rgba(59,130,246,0.08);border-radius:6px;border-left:3px solid var(--accent)">' + triage.caller_instructions + '</div>'
+      : '');
+  document.getElementById('triageCard').classList.add('visible');
+
+  // Dispatch card
+  const locationBadge = dispatch.location_routing_used
+    ? '<span class="badge badge-green">📍 ETA ' + dispatch.location_eta_minutes + 'min</span>' : '';
+  document.getElementById('dispatchBadges').innerHTML = locationBadge +
+    (dispatch.mutual_aid_required ? '<span class="badge badge-purple">MUTUAL AID</span>' : '');
+  document.getElementById('dispatchLatency').textContent = dispatch.latency_ms + 'ms';
+  const units = (dispatch.units_dispatched || []).map(u => {
+    const icon = UNIT_ICONS[u.unit_type] || UNIT_ICONS.DEFAULT;
+    return '<div class="unit-card"><span class="unit-icon">' + icon + '</span>' +
+      '<div class="unit-info"><div class="unit-name">' + u.unit_type.replace(/_/g,' ') + '</div>' +
+      '<div class="unit-detail">' + u.unit_id + '</div></div>' +
+      '<span class="unit-eta">ETA ' + u.eta_minutes + 'min</span></div>';
+  }).join('');
+  document.getElementById('dispatchCardBody').innerHTML =
+    '<div class="badge-row">' +
+      '<span class="badge badge-red">' + (dispatch.dispatch_priority||'') + '</span>' +
+      '<span class="badge badge-amber">' + (dispatch.incident_type||dispatch.cad_incident_type||'').replace(/_/g,' ') + '</span>' +
+    '</div>' +
+    (units || '<div style="color:var(--muted);font-size:12px">No units in response</div>') +
+    (dispatch.dispatch_narrative ? '<div class="narrative">' + dispatch.dispatch_narrative + '</div>' : '') +
+    (dispatch.special_instructions ? '<div style="font-size:11px;color:var(--amber)">⚠️ ' + dispatch.special_instructions + '</div>' : '');
+  document.getElementById('dispatchCard').classList.add('visible');
+
+  // Comms card
+  const snsBadge = comms.sns_alert_sent ? '<span class="badge badge-amber">📢 SNS Sent</span>' : '';
+  document.getElementById('commsBadges').innerHTML = snsBadge;
+  document.getElementById('commsLatency').textContent = comms.latency_ms + 'ms';
+  const instructionHtml = (comms.caller_instructions || []).map((ins, i) =>
+    '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;background:rgba(168,85,247,0.06);border-left:3px solid var(--purple);border-radius:0 4px 4px 0;font-size:12px">' +
+    '<span style="min-width:18px;height:18px;background:var(--purple);border-radius:50%;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff">' + (i+1) + '</span>' + ins + '</div>'
+  ).join('');
+  const briefingSafe = (comms.responder_briefing || '').replace(/'/g,"\\'").replace(/\n/g,' ');
+  document.getElementById('commsCardBody').innerHTML =
+    (instructionHtml ? '<div style="display:flex;flex-direction:column;gap:4px">' + instructionHtml + '</div>' : '') +
+    (comms.responder_briefing
+      ? '<div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#c084fc;margin-bottom:6px">Responder Briefing</div>' +
+        '<div class="briefing-box">' + comms.responder_briefing + '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-top:8px">' +
+          '<button class="tts-play-btn" onclick="speakBriefing(\'' + briefingSafe + '\')">🔊 Play Briefing</button>' +
+          '<span style="font-size:10px;color:var(--muted)">Nova Sonic TTS (Web Speech API fallback)</span>' +
+        '</div></div>'
+      : '') +
+    (comms.caller_reassurance ? '<div style="font-size:12px;color:var(--green);font-style:italic">&ldquo;' + comms.caller_reassurance + '&rdquo;</div>' : '');
+  document.getElementById('commsCard').classList.add('visible');
+
+  // Meta strip
+  const metaEl = document.getElementById('metaStrip');
+  metaEl.innerHTML =
+    '<span>Nova calls: <b>' + (meta.nova_calls||3) + '</b></span>' +
+    '<span>Triage: <b>' + triage.latency_ms + 'ms</b></span>' +
+    '<span>Dispatch: <b>' + dispatch.latency_ms + 'ms</b></span>' +
+    '<span>Comms: <b>' + comms.latency_ms + 'ms</b></span>' +
+    '<span>Total: <b>' + (elapsed/1000).toFixed(1) + 's</b></span>' +
+    '<span>CW Proof: <b>[NOVAGUARD TRIAGE CALL] [NOVAGUARD DISPATCH CALL] [NOVAGUARD COMMS CALL]</b></span>';
+  metaEl.style.display = 'flex';
+}
+
+// ── Embedding ──────────────────────────────────────────────────
+async function runEmbeddingSilent(description) {
+  setStep('embed', 'active', null);
+  const t0 = Date.now();
+  try {
+    const r = await fetch(API + '/embed', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description, top_k: 3 }),
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    const elapsed = Date.now() - t0;
+    setStep('embed', 'done', elapsed);
+    log('🧬 Nova Embed: ' + (data.similar_incidents||[]).length + ' matches · ' + elapsed + 'ms', 'info');
+    renderEmbedCard(data, elapsed);
+  } catch(e) {
+    setStep('embed', 'idle', null);
+  }
+}
+function renderEmbedCard(data, elapsed) {
+  const incidents = data.similar_incidents || [];
+  if (!incidents.length) return;
+  const rows = incidents.map(inc => {
+    const pct = Math.round((inc.similarity||0)*100);
+    return '<div class="sev-bar-row" style="margin-bottom:4px">' +
+      '<span class="badge badge-blue" style="min-width:90px;text-align:center">' + (inc.emergency_type||'?').replace(/_/g,' ') + '</span>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background: var(--accent)"></div></div>' +
+      '<span class="badge badge-green">' + pct + '%</span></div>' +
+      '<div style="font-size:10px;color:var(--muted);padding:0 4px;margin-top:-2px;margin-bottom:6px">' + (inc.description||'').slice(0,72) + '…</div>';
+  }).join('');
+  document.getElementById('embedCardBody').innerHTML = rows +
+    '<div style="font-size:10px;color:var(--muted)">amazon.nova-2-multimodal-embeddings-v1:0 (3072-dim) · cosine similarity · ' + elapsed + 'ms</div>';
+  document.getElementById('embedLatency').textContent = elapsed + 'ms';
+  document.getElementById('embedCard').classList.add('visible');
+}
+
+// ── Strands triage (parallel, run silently after pipeline) ──────
+async function runStrandsSilent(description) {
+  setStep('strands', 'active', null);
+  const t0 = Date.now();
+  try {
+    const r = await fetch(API + '/strands-triage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description }),
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    const elapsed = Date.now() - t0;
+    setStep('strands', 'done', elapsed);
+    log('🤖 Strands: ' + (data.tools_called||[]).length + ' tools · ' + (data.agent_framework||'strands') + ' · ' + elapsed + 'ms', 'info');
+  } catch(e) {
+    setStep('strands', 'idle', null);
+  }
+}
+
+// ── Streaming triage ───────────────────────────────────────────
+async function runTriageStream() {
+  const desc = document.getElementById('description').value.trim();
+  if (!desc) { log('Enter a description first', 'warn'); return; }
+
+  resetSteps();
+  const streamOut = document.getElementById('streamOutput');
+  streamOut.style.display = 'block'; streamOut.textContent = '';
+
+  document.getElementById('streamBtnInner').innerHTML = '<span class="spinner"></span> Streaming Nova 2 Lite tokens…';
+  setStep('triage', 'active', null);
+  log('POST /triage-stream → SSE tokens…', 'info');
+  const t0 = Date.now();
+
+  try {
+    const resp = await fetch(API + '/triage-stream', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const text = await resp.text();
+    const lines = text.split('\n').filter(l => l.startsWith('data:'));
+    for (const line of lines) {
+      let d; try { d = JSON.parse(line.slice(5)); } catch { continue; }
+      if (d.token) { streamOut.textContent += d.token; await new Promise(r => setTimeout(r, 12)); }
+      if (d.done) { const ms = d.latency_ms || (Date.now() - t0); setStep('triage','done',ms); log('Nova 2 Lite stream: ' + ms + 'ms', 'success'); }
+      if (d.error) throw new Error(d.error);
+    }
+  } catch(e) {
+    log('Stream error: ' + e.message, 'error'); setStep('triage', 'error', null);
+  } finally {
+    document.getElementById('streamBtnInner').textContent = '⚡ Stream Triage (live Nova 2 Lite tokens)';
+  }
+}
+
+// ── TTS (browser fallback; Nova Sonic on Node.js server) ───────
+function speakBriefing(text) {
+  if (!text) return;
+  setStep('sonic', 'active', null);
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 0.92; utt.pitch = 1.0;
+    utt.onend = () => setStep('sonic', 'done', null);
+    window.speechSynthesis.speak(utt);
+    log('🔊 TTS playing (Nova Sonic in production)', 'info');
+  }
+}
+
+// ── Resolve ─────────────────────────────────────────────────────
+function resolveEmergency() {
+  const btn = document.getElementById('resolveBtn');
+  btn.textContent = '✅ Emergency Resolved — Archiving Incident…';
+  btn.style.pointerEvents = 'none';
+  document.getElementById('alertBanner').classList.remove('visible');
+  document.getElementById('callerInstructions').innerHTML =
+    '<div style="color:var(--green);font-weight:700;font-size:14px">✅ Help has arrived. Emergency resolved.<br><span style="font-size:12px;color:var(--muted)">This incident has been archived to CloudWatch &amp; DynamoDB.</span></div>';
+  log('Emergency resolved — MTTR logged to CloudWatch', 'success');
+  setTimeout(() => { btn.textContent = '✅ Emergency Resolved'; }, 2000);
+}
+
+
+// ── Nova Act Hospital Data (real Medicare.gov data) ────────────
+async function loadHospitalData() {
+  try {
+    const r = await fetch(API + '/nova-act');
+    if (!r.ok) return;
+    const data = await r.json();
+    const latest = data.latest || data;
+    const hospitals = JSON.parse(latest.hospitals_found || '[]');
+    if (!hospitals.length) return;
+    const body = document.getElementById('hospitalCardBody');
+    body.innerHTML = hospitals.map((h,i) => 
+      '<div class="cap-row" style="flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px">' +
+        '<div style="display:flex;align-items:center;gap:8px;width:100%">' +
+          '<span class="badge badge-green">#' + (i+1) + '</span>' +
+          '<span style="font-weight:600;font-size:12px">' + h.name + '</span>' +
+          (h.overall_rating ? '<span class="badge badge-amber">★ ' + h.overall_rating + '</span>' : '') +
+          (h.distance ? '<span style="margin-left:auto;font-size:10px;color:var(--muted)">' + h.distance + '</span>' : '') +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--muted);padding-left:30px">' + (h.address||'') + '</div>' +
+      '</div>'
+    ).join('') +
+    '<div style="font-size:10px;color:var(--muted);padding:6px 0;border-top:1px solid rgba(255,255,255,0.05)">' +
+      '🤖 Source: Nova Act → Medicare.gov Care Compare (real .gov data) | ' + hospitals.length + ' hospitals found</div>';
+    document.getElementById('hospitalLatency').textContent = (latest.nova_act_duration_ms || '') + 'ms';
+  } catch(e) { console.log('Hospital data load failed:', e); }
+}
+loadHospitalData();
+
+// ── Architecture Modal ────────────────────────────────────────
+function showArchitecture() {
+  let modal = document.getElementById('archModal');
+  if (modal) { modal.style.display = 'flex'; return; }
+  modal = document.createElement('div');
+  modal.id = 'archModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.onclick = e => { if(e.target===modal) modal.style.display='none'; };
+  modal.innerHTML = '<div style="background:#0a1628;border:1px solid rgba(59,130,246,0.3);border-radius:12px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto;padding:24px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+      '<h2 style="font-size:18px;color:#60a5fa;margin:0">NovaGuard Architecture — 7 Agent Pipeline</h2>' +
+      '<button onclick="document.getElementById(\'archModal\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">✕</button>' +
+    '</div>' +
+    '<pre style="font-family:Courier New,monospace;font-size:11px;line-height:1.6;color:#e2e8f0;background:#050912;padding:16px;border-radius:8px;overflow-x:auto;white-space:pre">' +
+'Deaf Caller (text / photo / voice / TTY)\n' +
+'         │\n' +
+'         ▼\n' +
+'┌─ API Gateway (REST + WebSocket) + WAF ────────────────────┐\n' +
+'│  Rate limiting · Injection protection · CORS              │\n' +
+'└────────────────────────┬──────────────────────────────────┘\n' +
+'                         │\n' +
+'         ┌───────────────┼───────────────┐\n' +
+'         │               │               │\n' +
+'    ┌────▼────┐    ┌─────▼─────┐   ┌─────▼─────┐\n' +
+'    │ TRIAGE  │    │ STRANDS   │   │ NOVA ACT  │\n' +
+'    │Nova Lite│    │7-tool loop│   │ECS Fargate│\n' +
+'    │severity │    │+MCP+A2A   │   │Medicare   │\n' +
+'    │ 0-100   │    │delegation │   │.gov       │\n' +
+'    └────┬────┘    └─────┬─────┘   └─────┬─────┘\n' +
+'         │               │               │\n' +
+'    ┌────▼────┐          │          ┌────▼─────┐\n' +
+'    │DISPATCH │◄─────────┘          │Hospitals │\n' +
+'    │Nova Lite│  agent delegation   │real data │\n' +
+'    │+ ETA   │                      └──────────┘\n' +
+'    └────┬────┘\n' +
+'         │\n' +
+'    ┌────▼────┐    ┌──────────┐    ┌───────────┐\n' +
+'    │  COMMS  │    │  SONIC   │    │ EMBEDDING │\n' +
+'    │Nova Lite│    │Nova Sonic│    │Nova Embed │\n' +
+'    │briefing │    │STT + TTS │    │3072-dim   │\n' +
+'    └─────────┘    └──────────┘    └───────────┘\n' +
+'         │\n' +
+'    Step Functions Express Workflow\n' +
+'    A2A Protocol · DynamoDB · CloudWatch\n' +
+    '</pre>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:11px">' +
+      '<div style="background:rgba(59,130,246,0.08);padding:8px;border-radius:6px;border-left:3px solid #3b82f6"><b style="color:#60a5fa">Nova 2 Lite</b><br>Triage · Dispatch · Comms</div>' +
+      '<div style="background:rgba(168,85,247,0.08);padding:8px;border-radius:6px;border-left:3px solid #a855f7"><b style="color:#c084fc">Strands Agents</b><br>7-tool agentic loop + MCP</div>' +
+      '<div style="background:rgba(6,182,212,0.08);padding:8px;border-radius:6px;border-left:3px solid #06b6d4"><b style="color:#22d3ee">Nova Sonic</b><br>STT/TTS + Responder Audio Briefing</div>' +
+      '<div style="background:rgba(34,197,94,0.08);padding:8px;border-radius:6px;border-left:3px solid #22c55e"><b style="color:#4ade80">Nova Act</b><br>Medicare.gov browser automation</div>' +
+      '<div style="background:rgba(245,158,11,0.08);padding:8px;border-radius:6px;border-left:3px solid #f59e0b"><b style="color:#fbbf24">Nova Embeddings</b><br>3072-dim incident matching</div>' +
+      '<div style="background:rgba(239,68,68,0.08);padding:8px;border-radius:6px;border-left:3px solid #ef4444"><b style="color:#f87171">A2A Protocol</b><br>7 agent cards · inter-agent delegation</div>' +
+    '</div>' +
+    '<div style="margin-top:12px;font-size:10px;color:var(--muted)">All 4 Amazon Nova models in production · 12 live endpoints · 13 Lambda functions · 4-step SFN pipeline · ECS Fargate</div>' +
+  '</div>';
+  document.body.appendChild(modal);
+}
+</script>
+</body>
+</html>

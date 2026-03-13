@@ -1,0 +1,5 @@
+# NovaGuard ETA Updater Lambda — dependencies
+# All standard AWS SDK clients are provided by the Lambda runtime.
+# Shared observability utilities provided via Lambda layer.
+
+# No additional package dependencies beyond what's in the shared layer.

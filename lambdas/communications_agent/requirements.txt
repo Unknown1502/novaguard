@@ -1,0 +1,7 @@
+# Communications Agent — extends shared layer
+# Nova 2 Sonic streaming + SNS + SQS
+
+# No additional deps beyond shared layer
+# Nova 2 Sonic bidirectional streaming uses botocore event streams (built-in)
+# Translation uses Nova 2 Lite (invoked via bedrock_client.py in shared layer)
+# SNS/SQS are standard boto3 clients

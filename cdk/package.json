@@ -1,0 +1,44 @@
+{
+  "name": "novaguard-cdk",
+  "version": "1.0.0",
+  "description": "NovaGuard — AI-Powered Accessible Emergency Response Infrastructure (CDK)",
+  "main": "dist/bin/novaguard.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "deploy:all": "cdk deploy --all --require-approval never",
+    "deploy:core": "cdk deploy NovaGuard-CoreStack --require-approval never",
+    "deploy:api": "cdk deploy NovaGuard-ApiStack --require-approval never",
+    "deploy:agents": "cdk deploy NovaGuard-AgentsStack --require-approval never",
+    "destroy": "cdk destroy --all",
+    "diff": "cdk diff",
+    "lint": "eslint src --ext .ts",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "aws-cdk": "^2.130.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.130.0",
+    "constructs": "^10.3.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
+    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"]
+  }
+}

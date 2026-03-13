@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+
+# Node / CDK
+node_modules/
+cdk.out/
+
+# Vendored Lambda artifacts (generated)
+mvp-prototype/lambda/__pycache__/
+mvp-prototype/lambda/**/*.dist-info/
+mvp-prototype/lambda/**/__pycache__/
+mvp-prototype/lambda/awscrt/
+mvp-prototype/lambda/boto3/
+mvp-prototype/lambda/botocore/
+mvp-prototype/lambda/s3transfer/
+mvp-prototype/lambda/jmespath/
+mvp-prototype/lambda/dateutil/
+mvp-prototype/lambda/urllib3/
+mvp-prototype/lambda/bin/
+mvp-prototype/lambda/boto3_layer/
+mvp-prototype/lambda/strands_layer/python/
+mvp-prototype/lambda/sonic_layer/python/
+mvp-prototype/lambda/sonic_layer/**/*.dist-info/
+mvp-prototype/lambda/sonic_layer/**/__pycache__/
+mvp-prototype/lambda/sonic_layer/**/.pytest_cache/
+
+# Build / logs
+build/
+dist/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

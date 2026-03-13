@@ -1,0 +1,6 @@
+# NovaGuard Post-Incident Summary Agent — Lambda dependencies
+# Shared utilities are provided via Lambda layer (Lambda layer path: /opt/python)
+# Only list packages NOT in the shared layer here.
+
+# HTTP client for OpenSearch Serverless signed requests (shared layer provides this too)
+requests>=2.31.0

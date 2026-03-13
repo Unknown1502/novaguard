@@ -1,0 +1,8 @@
+# Intake Agent — minimal deps (extends shared layer)
+# The shared layer provides: boto3, pydantic, powertools, strands-agents
+
+# Image processing for media preprocessing before embedding
+Pillow>=10.3.0
+
+# Base64 + multipart form data handling
+python-multipart>=0.0.9

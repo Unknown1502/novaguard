@@ -1,0 +1,10 @@
+{
+  "NovaGuard-MVP": {
+    "HealthCheckUrl": "https://k0ltswj9ti.execute-api.us-east-1.amazonaws.com/prod/health",
+    "DynamoTableName": "novaguard-emergencies",
+    "DeploymentSummary": "NovaGuard MVP deployed successfully! | API: https://k0ltswj9ti.execute-api.us-east-1.amazonaws.com/prod/triage | Test: curl -X POST <url> -H 'Content-Type: application/json' -d '{\"description\": \"My father is having a heart attack\"}' | Proof: CloudWatch > Log groups > /aws/lambda/novaguard-triage-agent > search [NOVAGUARD REAL CALL]",
+    "LambdaLogGroup": "/aws/lambda/novaguard-triage-agent",
+    "NovaGuardApiEndpointFF1F4200": "https://k0ltswj9ti.execute-api.us-east-1.amazonaws.com/prod/",
+    "TriageApiUrl": "https://k0ltswj9ti.execute-api.us-east-1.amazonaws.com/prod/triage"
+  }
+}

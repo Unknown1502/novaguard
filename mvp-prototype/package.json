@@ -1,0 +1,24 @@
+{
+  "name": "novaguard-mvp",
+  "version": "1.0.0",
+  "description": "NovaGuard MVP CDK app — API Gateway + Triage Lambda + DynamoDB",
+  "main": "app.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "deploy": "cdk deploy --require-approval never",
+    "synth": "cdk synth",
+    "destroy": "cdk destroy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.130.0",
+    "constructs": "^10.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "aws-cdk": "^2.130.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.3"
+  }
+}

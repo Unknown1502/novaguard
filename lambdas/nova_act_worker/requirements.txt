@@ -1,0 +1,5 @@
+nova-act
+playwright>=1.50.0
+boto3>=1.37.0
+botocore>=1.37.0
+pydantic>=2.0.0

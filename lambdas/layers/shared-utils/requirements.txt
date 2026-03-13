@@ -1,0 +1,8 @@
+# NovaGuard Lambda Layer — Shared utilities (models, bedrock client, observability)
+# This layer is populated by the CDK build pipeline from lambdas/shared/
+# Build: pip install -r requirements.txt -t python/ && cp ../shared/*.py python/
+# No third-party packages needed here — deps come from strands-agents layer.
+# The python/ directory must contain:
+#   models.py, bedrock_client.py, mcp_tools.py, observability.py, opensearch_client.py
+
+boto3>=1.34.0

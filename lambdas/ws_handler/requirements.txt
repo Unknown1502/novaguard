@@ -1,0 +1,5 @@
+# WebSocket Handler — extends shared layer
+# API Gateway Management API + Bedrock bidirectional streaming
+
+# No additional deps: boto3 handles both APIGW Management API and Bedrock streaming
+# Threading and queue are Python stdlib (no package needed)

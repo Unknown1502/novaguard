@@ -1,0 +1,8 @@
+# Dispatch Agent — extends shared layer
+# Nova Act browser automation + Location Service route calculation
+
+# Nova Act SDK (Amazon Bedrock browser automation)
+nova-act>=0.1.0
+
+# Geospatial math for straight-line ETA fallback
+geopy>=2.4.0

@@ -1,0 +1,27 @@
+# NovaGuard Shared Lambda Layer — Python dependencies
+# Layer name: novaguard-shared
+# Compatible runtimes: python3.12
+# Architecture: arm64 (Graviton 2 — lower cost, better perf for I/O-bound workloads)
+
+# Core AWS utilities
+boto3>=1.34.0
+botocore>=1.34.0
+aws-lambda-powertools>=2.38.0
+
+# Data validation (Pydantic v2 — Rust-based, ~10x faster than v1)
+pydantic>=2.7.0
+
+# Strands Agents SDK (for MCP tool use patterns)
+strands-agents>=0.1.0
+
+# OpenSearch client for vector search
+opensearch-py>=2.6.0
+
+# Retry / backoff
+tenacity>=8.2.0
+
+# Observability
+aws-xray-sdk>=2.13.0
+
+# JSON + datetime utilities
+python-dateutil>=2.9.0

@@ -325,6 +325,8 @@ At full national deployment: **106,800 preventable deaths per decade.**
 
 MIT — Built for Amazon Nova AI Hackathon 2026.
 
+```text
+
         │
         ▼
 ┌─ API Gateway ──────────────────────────────────┐

@@ -525,6 +525,27 @@ Open `demo/index.html` in any browser — **no server required**.
 
 ---
 
+## Future Roadmap (Post-Hackathon)
+
+This roadmap focuses on turning the prototype into a pilot-ready emergency accessibility platform.
+
+| Phase | Timeline | Goal | Key Deliverables | Success Metrics |
+|---|---|---|---|---|
+| Phase 1: Hardening | 0-30 days | Production-grade reliability | IaC cleanup, canary deploys, retry/backoff tuning, stronger error handling for demo/data endpoints | 99.9% API uptime, <1% pipeline failures |
+| Phase 2: Safety + Governance | 30-60 days | Clinical and operational trust | Human-in-the-loop escalation rules, policy guardrails, audit dashboards, incident replay tooling | 100% traceable decisions, <5 min escalation response |
+| Phase 3: Accessibility Expansion | 60-90 days | Better inclusion coverage | Expanded multilingual flows, improved TTY/ASL relay routing, clearer caller UX prompts | 10+ languages validated, lower caller drop-off |
+| Phase 4: Pilot Integrations | 90-180 days | Real dispatch center pilots | CAD adapter layer, PSAP onboarding kit, role-based console access, runbooks/training | 2-3 pilot agencies onboarded |
+| Phase 5: Predictive Operations | 6-12 months | Proactive response planning | Forecasting model retraining, shift-level resource recommendations, continuous feedback loop from outcomes | Measurable ETA and dispatch-efficiency improvement |
+
+### Roadmap Priorities
+
+1. Reliability before features: preserve low-latency triage and stable workflows under load.
+2. Safety by design: keep professionals in control with transparent AI recommendations.
+3. Interoperability: integrate with existing CAD/PSAP systems, not replace overnight.
+4. Measurable impact: track accessibility outcomes, dispatch speed, and escalation quality.
+
+---
+
 ## License
 
 MIT — see LICENSE file.  
